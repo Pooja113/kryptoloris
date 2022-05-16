@@ -13,3 +13,5 @@ npx hardhat node
 node scripts/sample-script.js
 npx hardhat help
 ```
+
+## Create account in alchemy and use the HTTP and your private key in the config file
