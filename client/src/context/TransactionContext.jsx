@@ -15,7 +15,7 @@ const getEthereumContract = () => {
 }
 
 export const TransactionProvider = ({ children }) => {
- const [currentAccount,setCurrentAccount] = useState();
+ const [currentAccount,setCurrentAccount] = useState("");
  const [formData, setFormData] = useState({
    addressTo: '',
    amount:'',
@@ -24,6 +24,7 @@ export const TransactionProvider = ({ children }) => {
  })
 
  const [isLoading,setIsLoading] = useState(false);
+ const [transactionCount,setTransactionCount] = useState(localStorage.getItem('transactionCount'));
 
  const handleChange = (e,name) =>{
   setFormData((prevSate)=>({...prevSate,[name]:e.target.value}));
@@ -61,26 +62,29 @@ export const TransactionProvider = ({ children }) => {
   const sendTransaction = async () => {
     try {
       if(!ethereum) return alert("Please install Metamask");
+      const {addressTo,amount,keyword,message} = formData;
       const transactionContract = getEthereumContract();
       const parsedAmount = ethers.utils.parseEther(amount)
+      
 
       await ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: currentAccount,
-          to: addressTo,
-          gas: '0x5208',
-          value:  parsedAmount._hex,
-        }]
-      })
-     const transactionHash = await transactionContract.addToBlockchain(addressTo, parsedAmount,message, keyword);
-     setIsLoading(true);
-     console.log(`Loading ${transactionHash.hash}`);
-     await transactionHash.wait();
-     setIsLoading(false);
-     console.log(`Success ${transactionHash.hash}`);
+          method: 'eth_sendTransaction',
+          params: [{
+            from: currentAccount,
+            to: addressTo,
+            gas: '0x5208', //21000 gwei
+            value:  parsedAmount._hex,
+          }]
+        });
 
-     const transactionCount = await transactionContract.getTransactionCount();
+      const transactionHash = await transactionContract.addToBlockchain(addressTo, parsedAmount, message, keyword);
+      setIsLoading(true);
+      console.log(`Loading - ${transactionHash.hash}`);
+      await transactionHash.wait();
+      setIsLoading(false);
+      console.log(`Success ${transactionHash.hash}`);
+      const transactionCount = await transactionContract.getTransactionCount();
+      setTransactionCount(transactionCount.toNumber());
     } catch (error) {
       console.log(error);
       throw new Error("No ethereum object.")
@@ -92,7 +96,7 @@ export const TransactionProvider = ({ children }) => {
   },[]);
 
   return (
-    <TransactionContext.Provider value={{ connectWallet, currentAccount,formData, sendTransaction, handleChange }}>
+    <TransactionContext.Provider value={{ connectWallet,currentAccount,formData,sendTransaction,handleChange }}>
       {children}
     </TransactionContext.Provider>
   );
